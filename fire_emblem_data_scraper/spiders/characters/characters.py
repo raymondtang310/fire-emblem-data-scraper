@@ -14,6 +14,9 @@ class CharactersSpider(scrapy.Spider):
     """
     name = 'characters'
     start_urls = ['https://fireemblemwiki.org/wiki/Category:Characters']
+    custom_settings = {
+        'MONGO_COLLECTION_NAME': 'characters'
+    }
 
     BASE_URL = 'https://fireemblemwiki.org'
 
