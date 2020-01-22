@@ -1,31 +1,32 @@
-from unittest import mock, TestCase
+import unittest
+from unittest.mock import patch
 
 from scrapy.http import HtmlResponse
 
 from fire_emblem_data_scraper.spiders.characters.characters import CharactersSpider
 
 
-class TestCharactersSpider(TestCase):
+class TestCharactersSpider(unittest.TestCase):
     """
     TestCharactersSpider is a class for unit testing CharactersSpider.
     """
 
     def setUp(self):
         """
-        Instructions that execute before each test method.
+        Method that executes before each test method.
 
         :return: None
         """
         self.spider = CharactersSpider()
 
-    @mock.patch('fire_emblem_data_scraper.spiders.characters.characters.scrapy.Request')
-    def test_request_is_made_for_each_character_link(self, mock_scrapy_request):
+    @patch('fire_emblem_data_scraper.spiders.characters.characters.scrapy.Request')
+    def test_when_parsing_response_then_request_is_made_for_each_character_link(self, request_mock):
         """
         Tests that a request is made for each link to a Fire Emblem character web page that is found in the given
-        response.
+        response when parsing the given response.
 
-        :param mock_scrapy_request: A mock of scrapy.Request
-        :type mock_scrapy_request: MagicMock
+        :param request_mock: A mock of scrapy.Request
+        :type request_mock: MagicMock
         :return: None
         """
         character_links = ['/Byleth', '/Edelgard']
@@ -58,15 +59,16 @@ class TestCharactersSpider(TestCase):
 
         for character_link, request in zip(character_links, requests):
             character_url = self.spider.BASE_URL + character_link
-            mock_scrapy_request.assert_called_with(character_url, callback=self.spider.parse_character)
+            request_mock.assert_called_with(character_url, callback=self.spider.parse_character)
 
-    @mock.patch('fire_emblem_data_scraper.spiders.characters.characters.scrapy.Request')
-    def test_request_is_made_for_next_page_when_next_page_link_is_found(self, mock_scrapy_request):
+    @patch('fire_emblem_data_scraper.spiders.characters.characters.scrapy.Request')
+    def test_when_parsing_response_given_next_page_link_is_found_then_request_is_made_for_next_page(self, request_mock):
         """
-        Tests that a request is made for the next page when a link for the next page is found in the given response.
+        Tests that a request is made for the next page when parsing the given response, given that a link for the next
+        page is found in the given response.
 
-        :param mock_scrapy_request: A mock of scrapy.Request
-        :type mock_scrapy_request: MagicMock
+        :param request_mock: A mock of scrapy.Request
+        :type request_mock: MagicMock
         :return: None
         """
         next_page_link = '/next-page'
@@ -90,16 +92,17 @@ class TestCharactersSpider(TestCase):
         requests = self.spider.parse(response)
 
         for _ in requests:
-            mock_scrapy_request.assert_called_with(next_page_url, callback=self.spider.parse)
+            request_mock.assert_called_with(next_page_url, callback=self.spider.parse)
 
-    @mock.patch('fire_emblem_data_scraper.spiders.characters.characters.scrapy.Request')
-    def test_request_is_not_made_for_next_page_when_next_page_link_is_not_found(self, mock_scrapy_request):
+    @patch('fire_emblem_data_scraper.spiders.characters.characters.scrapy.Request')
+    def test_when_parsing_response_given_next_page_link_is_not_found_then_request_is_not_made_for_next_page(
+            self, request_mock):
         """
-        Tests that a request is not made for the next page when a link for the next page is not found in the given
-        response.
+        Tests that a request is not made for the next page when parsing the given response, given that a link for the
+        next page is not found in the given response.
 
-        :param mock_scrapy_request: A mock of scrapy.Request
-        :type mock_scrapy_request: MagicMock
+        :param request_mock: A mock of scrapy.Request
+        :type request_mock: MagicMock
         :return: None
         """
         html = '''
@@ -119,12 +122,12 @@ class TestCharactersSpider(TestCase):
         requests = self.spider.parse(response)
 
         for _ in requests:
-            mock_scrapy_request.assert_not_called()
+            request_mock.assert_not_called()
 
-    def test_parse_name_when_name_is_found(self):
+    def test_when_parsing_character_given_name_is_found_then_name_is_scraped(self):
         """
-        Tests that the name of the Fire Emblem character is parsed correctly when the name of the character is found in
-        the given response.
+        Tests that the name of the Fire Emblem character is scraped when parsing the given response of the character's
+        web page, given that the name of the character is found in the given response.
 
         :return: None
         """
@@ -145,12 +148,12 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertEqual(character_item['name'], name, 'Name was not parsed correctly')
+        self.assertEqual(character_item['name'], name, 'Name was not scraped correctly')
 
-    def test_parse_name_when_name_is_not_found(self):
+    def test_when_parsing_character_given_name_is_not_found_then_character_is_not_scraped(self):
         """
-        Tests that a CharacterItem is not returned when the name of the Fire Emblem character cannot be found in the
-        given response.
+        Tests that a Fire Emblem character item is not scraped when parsing the given response of the character's web
+        page, given that the name of the Fire Emblem character is not found in the given response.
 
         :return: None
         """
@@ -170,11 +173,14 @@ class TestCharactersSpider(TestCase):
 
         result = self.spider.parse_character(response)
 
-        self.assertIsNone(result, 'None should have been returned')
+        self.assertIsNone(result, 'An item was unexpectedly scraped')
 
-    def test_parse_images_when_primary_displayed_image_is_found(self):
+    def test_when_parsing_character_given_primary_image_is_found_then_images_are_scraped(self):
         """
-        Tests that images are parsed correctly when a primary displayed image is found in the given response.
+        Tests that images of the Fire Emblem character are scraped correctly when parsing the given response of the
+        character's web page, given that a primary image is found in the given response. In this scenario, images are
+        scraped correctly if the primary image found is scraped as the primary image and other images found are scraped
+        as other images.
 
         :return: None
         """
@@ -213,13 +219,16 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertEqual(character_item['primaryImage'], primary_image_url, 'Primary image was not parsed correctly')
-        self.assertEqual(character_item['otherImages'], other_images_urls, 'Other images were not parsed correctly')
+        self.assertEqual(character_item['primaryImage'], primary_image_url, 'Primary image was not scraped correctly')
+        self.assertEqual(character_item['otherImages'], other_images_urls, 'Other images were not scraped correctly')
 
-    def test_parse_images_when_primary_displayed_image_is_not_found_and_other_images_are_found(self):
+    def test_when_parsing_character_given_primary_image_is_not_found_and_other_images_are_found_then_images_are_scraped_with_first_image_found_as_primary_image(
+            self):
         """
-        Tests that images are parsed correctly when a primary displayed image cannot be found in the given response
-        but other images are found.
+        Tests that images of the Fire Emblem character are scraped correctly when parsing the given response of the
+        character's web page, given that a primary image cannot be found in the given response but other images are
+        found. In this scenario, images are scraped correctly if the first image found is scraped as the primary image
+        and other images found are scraped as other images.
 
         :return: None
         """
@@ -252,13 +261,13 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertEqual(character_item['primaryImage'], primary_image_url, 'Primary image was not parsed correctly')
-        self.assertEqual(character_item['otherImages'], other_images_urls, 'Other images were not parsed correctly')
+        self.assertEqual(character_item['primaryImage'], primary_image_url, 'Primary image was not scraped correctly')
+        self.assertEqual(character_item['otherImages'], other_images_urls, 'Other images were not scraped correctly')
 
-    def test_parse_images_when_no_images_are_found(self):
+    def test_when_parsing_character_given_images_are_not_found_then_images_are_not_scraped(self):
         """
-        Tests that images are not added to the parsed CharacterItem when no images of the Fire Emblem character
-        are found in the given response.
+        Tests that images of the Fire Emblem character are not scraped when parsing the given response of the
+        character's web page, given that images of the Fire Emblem character are not found in the given response.
 
         :return: None
         """
@@ -279,13 +288,13 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertNotIn('primaryImage', character_item, 'CharacterItem should not contain a primary image')
-        self.assertNotIn('otherImages', character_item, 'CharacterItem should not contain other images')
+        self.assertNotIn('primaryImage', character_item, 'Primary image was unexpectedly scraped')
+        self.assertNotIn('otherImages', character_item, 'Other images were unexpectedly scraped')
 
-    def test_parse_appearances_when_appearances_are_found(self):
+    def test_when_parsing_character_given_appearances_are_found_then_appearances_are_scraped(self):
         """
-        Tests that the appearances of the Fire Emblem character are parsed correctly when the character's appearances
-        are found in the given response.
+        Tests that appearances of the Fire Emblem character are scraped when parsing the given response of the
+        character's web page, given that the character's appearances are found in the given response.
 
         :return: None
         """
@@ -328,12 +337,12 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertEqual(character_item['appearances'], appearances, 'Appearances were not parsed correctly')
+        self.assertEqual(character_item['appearances'], appearances, 'Appearances were not scraped correctly')
 
-    def test_parse_appearances_when_no_appearances_are_found(self):
+    def test_when_parsing_character_given_appearances_are_not_found_then_appearances_are_not_scraped(self):
         """
-        Tests that appearances are not added to the parsed CharacterItem when the character's appearances cannot be
-        found in the given response.
+        Tests that appearances of the Fire Emblem character are not scraped when parsing the given response of the
+        character's web page, given that the character's appearances are not found in the given response.
 
         :return: None
         """
@@ -353,12 +362,12 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertNotIn('appearances', character_item, 'CharacterItem should not contain appearances')
+        self.assertNotIn('appearances', character_item, 'Appearances were unexpectedly scraped')
 
-    def test_parse_titles_when_multiple_titles_are_found(self):
+    def test_when_parsing_character_given_multiple_titles_are_found_then_titles_are_scraped(self):
         """
-        Tests that the titles of the Fire Emblem character are parsed correctly when multiple titles for the character
-        are found in the given response.
+        Tests that titles of the Fire Emblem character are scraped when parsing the given response of the character's
+        web page, given that multiple titles for the character are found in the given response.
 
         :return: None
         """
@@ -390,12 +399,13 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertEqual(character_item['titles'], titles, 'Titles were not parsed correctly')
+        self.assertEqual(character_item['titles'], titles, 'Titles were not scraped correctly')
 
-    def test_parse_titles_when_title_text_is_split_amongst_multiple_elements(self):
+    def test_when_parsing_character_given_title_text_is_split_amongst_multiple_elements_then_titles_are_scraped(self):
         """
-        Tests that the titles of the Fire Emblem character are parsed correctly when the text of a title for the
-        character is split amongst multiple elements in the given response.
+        Tests that titles of the Fire Emblem character are scraped when parsing the given response of the character's
+        web page, given that the text of a title of the character is split amongst multiple elements in the given
+        response.
 
         :return: None
         """
@@ -428,12 +438,12 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertEqual(character_item['titles'], titles, 'Titles were not parsed correctly')
+        self.assertEqual(character_item['titles'], titles, 'Titles were not scraped correctly')
 
-    def test_parse_titles_when_one_title_is_found(self):
+    def test_when_parsing_character_given_one_title_is_found_then_title_is_scraped(self):
         """
-        Tests that the titles of the Fire Emblem character are parsed correctly when only one title for the character
-        is found in the given response.
+        Tests that the title of the Fire Emblem character is scraped when parsing the given response of the character's
+        web page, given that only one title for the character is found in the given response.
 
         :return: None
         """
@@ -462,12 +472,12 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertEqual(character_item['titles'], titles, 'Titles were not parsed correctly')
+        self.assertEqual(character_item['titles'], titles, 'Titles were not scraped correctly')
 
-    def test_parse_titles_when_no_titles_are_found(self):
+    def test_when_parsing_character_given_titles_are_not_found_then_titles_are_not_scraped(self):
         """
-        Tests that titles are not added to the parsed CharacterItem when titles for the character cannot be found in the
-        given response.
+        Tests that titles of the Fire Emblem character are not scraped when parsing the given response of the
+        character's web page, given that titles of the character are not found in the given response.
 
         :return: None
         """
@@ -487,12 +497,13 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertNotIn('titles', character_item, 'CharacterItem should not contain titles')
+        self.assertNotIn('titles', character_item, 'Titles were unexpectedly scraped')
 
-    def test_parse_voice_actors_when_only_english_voice_actors_are_found(self):
+    def test_when_parsing_character_given_only_english_voice_actors_are_found_then_only_english_voice_actors_are_scraped(
+            self):
         """
-        Tests that the voice actors of the Fire Emblem character are parsed correctly when only the character's English
-        voice actors are found in the given response.
+        Tests that only English voice actors of the Fire Emblem character are scraped when parsing the given response of
+        the character's web page, given that only English voice actors of the character are found in the given response.
 
         :return: None
         """
@@ -528,12 +539,14 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertEqual(character_item['voiceActors'], voice_actors, 'Voice actors were not parsed correctly')
+        self.assertEqual(character_item['voiceActors'], voice_actors, 'Voice actors were not scraped correctly')
 
-    def test_parse_voice_actors_when_only_japanese_voice_actors_are_found(self):
+    def test_when_parsing_character_given_only_japanese_voice_actors_are_found_then_only_japanese_voice_actors_are_scraped(
+            self):
         """
-        Tests that the voice actors of the Fire Emblem character are parsed correctly when only the character's Japanese
-        voice actors are found in the given response.
+        Tests that only Japanese voice actors of the Fire Emblem character are scraped when parsing the given response
+        of the character's web page, given that only Japanese voice actors of the character are found in the given
+        response.
 
         :return: None
         """
@@ -569,12 +582,14 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertEqual(character_item['voiceActors'], voice_actors, 'Voice actors were not parsed correctly')
+        self.assertEqual(character_item['voiceActors'], voice_actors, 'Voice actors were not scraped correctly')
 
-    def test_parse_voice_actors_when_english_and_japanese_voice_actors_are_found(self):
+    def test_when_parsing_character_given_english_and_japanese_voice_actors_are_found_then_english_and_japanese_voice_actors_are_scraped(
+            self):
         """
-        Tests that the voice actors of the Fire Emblem character are parsed correctly when both the character's English
-        and Japanese voice actors are found in the given response.
+        Tests that both English and Japanese voice actors of the Fire Emblem character are scraped when parsing the
+        given response of the character's web page, given that both English and Japanese voice actors of the character
+        are found in the given response.
 
         :return: None
         """
@@ -615,12 +630,12 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertEqual(character_item['voiceActors'], voice_actors, 'Voice actors were not parsed correctly')
+        self.assertEqual(character_item['voiceActors'], voice_actors, 'Voice actors were not scraped correctly')
 
-    def test_parse_voice_actors_when_no_voice_actors_are_found(self):
+    def test_when_parsing_character_given_voice_actors_are_not_found_then_voice_actors_are_not_scraped(self):
         """
-        Tests that voice actors are not added to the parsed CharacterItem when no voice actors are found in the given
-        response.
+        Tests that voice actors are not scraped when parsing the given response of the character's web page, given that
+        voice actors of the character are not found in the given response.
 
         :return: None
         """
@@ -640,4 +655,7 @@ class TestCharactersSpider(TestCase):
 
         character_item = self.spider.parse_character(response)
 
-        self.assertNotIn('voiceActors', character_item, 'CharacterItem should not contain voice actors')
+        self.assertNotIn('voiceActors', character_item, 'Voice actors were unexpectedly scraped')
+
+    if __name__ == '__main__':
+        unittest.main()

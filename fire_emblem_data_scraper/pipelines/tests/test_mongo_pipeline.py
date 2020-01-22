@@ -12,6 +12,11 @@ class TestMongoPipeline(unittest.TestCase):
     """
 
     def setUp(self):
+        """
+        Method that executes before each test method.
+
+        :return: None
+        """
         self.spider = MockSpider()
         self.collection_name = 'collection'
         self.database_name = 'database'
@@ -19,7 +24,7 @@ class TestMongoPipeline(unittest.TestCase):
         self.pipeline = MongoPipeline(self.collection_name, self.database_name, self.uri)
 
     @patch('fire_emblem_data_scraper.pipelines.mongo_pipeline.MongoClient')
-    def test_mongo_connection_is_created_when_opening_spider(self, mongo_client_mock):
+    def test_when_opening_spider_then_mongo_connection_is_created(self, mongo_client_mock):
         """
         Tests that a connection to the MongoDB instance specified by the given URI is created when opening the given
         spider.
@@ -33,7 +38,7 @@ class TestMongoPipeline(unittest.TestCase):
         mongo_client_mock.assert_called_once_with(self.uri)
 
     @patch('fire_emblem_data_scraper.pipelines.mongo_pipeline.MongoClient')
-    def test_database_is_created_or_retrieved_when_opening_spider(self, mongo_client_mock):
+    def test_when_opening_spider_then_database_is_created_or_retrieved(self, mongo_client_mock):
         """
         Tests that the database specified by the given database name is created or retrieved when opening the given
         spider.
@@ -48,7 +53,7 @@ class TestMongoPipeline(unittest.TestCase):
                          'Database was not created/retrieved')
 
     @patch('fire_emblem_data_scraper.pipelines.mongo_pipeline.MongoClient.close')
-    def test_mongo_connection_is_closed_when_closing_spider(self, close_mock):
+    def test_when_closing_spider_then_mongo_connection_is_closed(self, close_mock):
         """
         Tests that the connection to the MongoDB instance specified by the given URI is closed when closing the given
         spider.
@@ -64,7 +69,7 @@ class TestMongoPipeline(unittest.TestCase):
         close_mock.assert_called_once()
 
     @patch('pymongo.collection.Collection.insert_one')
-    def test_item_is_inserted_into_collection_when_processing_item(self, insert_one_mock):
+    def test_when_processing_item_then_item_is_inserted_into_collection(self, insert_one_mock):
         """
         Tests that the given item is inserted into the collection specified by the given collection name when processing
         the item.
@@ -81,7 +86,7 @@ class TestMongoPipeline(unittest.TestCase):
         insert_one_mock.assert_called_once_with(dict(item))
 
     @patch('fire_emblem_data_scraper.pipelines.mongo_pipeline.MongoClient')
-    def test_item_is_returned_when_processing_item(self, mongo_client_mock):
+    def test_when_processing_item_then_item_is_returned(self, mongo_client_mock):
         """
         Tests that the given item is returned when processing the item.
 
