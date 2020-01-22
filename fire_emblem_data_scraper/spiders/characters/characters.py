@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-
+from collections import OrderedDict
 from string import Template
 
 import scrapy
 from bs4 import BeautifulSoup
 
+from fire_emblem_data_scraper.constants import MAX_NUM_OTHER_IMAGES
 from fire_emblem_data_scraper.spiders.characters.character_item import CharacterItem
 
 
@@ -92,10 +93,11 @@ class CharactersSpider(scrapy.Spider):
         :type character_item: CharacterItem
         :return: None
         """
-        image_path = '//a[@class="image"]//img/@src'
+        image_path = (f'//a[@class="image"]//img[contains(@src, "{character_item["name"]}") or '
+                      f'contains(@src, "{character_item["name"].lower()}")]/@src')
         primary_image_link = response.xpath(
             f'//div[@class="tab_content" and @style="display:block;"]{image_path}').get()
-        image_links = response.xpath(image_path).getall()
+        image_links = list(OrderedDict.fromkeys(response.xpath(image_path).getall()))  # remove duplicate images
 
         if not primary_image_link and image_links:
             primary_image_link = image_links[0]
@@ -105,7 +107,7 @@ class CharactersSpider(scrapy.Spider):
         if primary_image_link:
             character_item['primaryImage'] = self.BASE_URL + primary_image_link
         if image_links:
-            image_urls = [self.BASE_URL + image_link for image_link in image_links]
+            image_urls = [self.BASE_URL + image_link for image_link in image_links[:MAX_NUM_OTHER_IMAGES]]
             character_item['otherImages'] = image_urls
 
     def __parse_appearances(self, response, character_item):

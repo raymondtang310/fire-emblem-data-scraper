@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from scrapy.http import HtmlResponse
 
+from fire_emblem_data_scraper.constants import MAX_NUM_OTHER_IMAGES
 from fire_emblem_data_scraper.spiders.characters.characters import CharactersSpider
 
 
@@ -215,12 +216,12 @@ class TestCharactersSpider(unittest.TestCase):
         '''
         response = HtmlResponse(url='', body=html.encode('utf-8'))
         primary_image_url = self.spider.BASE_URL + primary_image_link
-        other_images_urls = [self.spider.BASE_URL + other_image_link for other_image_link in other_image_links]
+        other_image_urls = [self.spider.BASE_URL + other_image_link for other_image_link in other_image_links]
 
         character_item = self.spider.parse_character(response)
 
         self.assertEqual(character_item['primaryImage'], primary_image_url, 'Primary image was not scraped correctly')
-        self.assertEqual(character_item['otherImages'], other_images_urls, 'Other images were not scraped correctly')
+        self.assertEqual(character_item['otherImages'], other_image_urls, 'Other images were not scraped correctly')
 
     def test_when_parsing_character_given_primary_image_is_not_found_and_other_images_are_found_then_images_are_scraped_with_first_image_found_as_primary_image(
             self):
@@ -257,12 +258,106 @@ class TestCharactersSpider(unittest.TestCase):
         '''
         response = HtmlResponse(url='', body=html.encode('utf-8'))
         primary_image_url = self.spider.BASE_URL + image_links[0]
-        other_images_urls = [self.spider.BASE_URL + image_links[1]]
+        other_image_urls = [self.spider.BASE_URL + image_links[1]]
 
         character_item = self.spider.parse_character(response)
 
         self.assertEqual(character_item['primaryImage'], primary_image_url, 'Primary image was not scraped correctly')
-        self.assertEqual(character_item['otherImages'], other_images_urls, 'Other images were not scraped correctly')
+        self.assertEqual(character_item['otherImages'], other_image_urls, 'Other images were not scraped correctly')
+
+    def test_when_parsing_character_given_number_of_images_found_is_greater_than_threshold_then_number_of_images_scraped_is_limited_to_threshold(
+            self):
+        """
+        Tests that the number of images of the Fire Emblem character scraped is limited to the maximum threshold when
+        parsing the given response of the character's web page, given that the number of images of the character found
+        in the given response exceeds the maximum threshold.
+
+        :return: None
+        """
+        primary_image_link = '/ike.png'
+        other_image_links = ['/another-ike-1.png', '/another-ike-2.png', '/another-ike-3.png', '/another-ike-4.png',
+                             '/another-ike-5.png', '/another-ike-6.png', '/another-ike-7.png', '/another-ike-8.png',
+                             '/another-ike-9.png', '/another-ike-10.png', '/another-ike-11.png']
+        other_images_html = ''.join([f'''
+            <div class="tab_content" style="display:none;">
+                <a class="image">
+                    <img src="{other_image_link}">
+                </a>
+            </div>
+        ''' for other_image_link in other_image_links])
+        html = f'''
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Ike</title>
+                </head>
+                <body>
+                    <h1 id="firstHeading">Ike</h1>
+                    <div class="tab_content" style="display:block;">
+                        <a class="image">
+                            <img src="{primary_image_link}">
+                        </a>
+                    </div>
+                    {other_images_html}
+                </body>
+            </html>
+        '''
+        response = HtmlResponse(url='', body=html.encode('utf-8'))
+        primary_image_url = self.spider.BASE_URL + primary_image_link
+        other_image_urls = [self.spider.BASE_URL + other_image_link for other_image_link in
+                            other_image_links[:MAX_NUM_OTHER_IMAGES]]
+
+        character_item = self.spider.parse_character(response)
+
+        self.assertEqual(character_item['primaryImage'], primary_image_url, 'Primary image was not scraped correctly')
+        self.assertEqual(character_item['otherImages'], other_image_urls, 'Other images were not scraped correctly')
+
+    def test_when_parsing_character_given_duplicate_images_are_found_then_duplicate_images_are_not_scraped(self):
+        """
+        Tests that duplicate images of the Fire Emblem character are not scraped when parsing the given response of the
+        character's web page, given that duplicate images of the character are found in the given response.
+
+        :return: None
+        """
+        primary_image_link = '/ike-1.png'
+        other_image_links = ['/ike-2.png', '/ike-1.png', '/ike-2.png']
+        other_images_html = ''.join([f'''
+            <div class="tab_content" style="display:none;">
+                <a class="image">
+                    <img src="{other_image_link}">
+                </a>
+            </div>
+        ''' for other_image_link in other_image_links])
+        html = f'''
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Ike</title>
+                </head>
+                <body>
+                    <h1 id="firstHeading">Ike</h1>
+                    <div class="tab_content" style="display:block;">
+                        <a class="image">
+                            <img src="{primary_image_link}">
+                        </a>
+                    </div>
+                    {other_images_html}
+                </body>
+            </html>
+        '''
+        response = HtmlResponse(url='', body=html.encode('utf-8'))
+        primary_image_url = self.spider.BASE_URL + primary_image_link
+        filtered_other_image_links = set(other_image_links)
+        filtered_other_image_links.remove(primary_image_link)
+        other_image_urls = [self.spider.BASE_URL + other_image_link for other_image_link in
+                            filtered_other_image_links]
+
+        character_item = self.spider.parse_character(response)
+
+        self.assertEqual(character_item['primaryImage'], primary_image_url, 'Primary image was not scraped correctly')
+        self.assertEqual(character_item['otherImages'], other_image_urls, 'Other images were not scraped correctly')
 
     def test_when_parsing_character_given_images_are_not_found_then_images_are_not_scraped(self):
         """
