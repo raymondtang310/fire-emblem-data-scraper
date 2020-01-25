@@ -78,7 +78,7 @@ class CharactersSpider(scrapy.Spider):
         name = response.xpath('//h1[@id="firstHeading"]/text()').get()
 
         if name:
-            character_item['name'] = name
+            character_item['name'] = name.strip()
             return True
 
         return False
@@ -123,7 +123,7 @@ class CharactersSpider(scrapy.Spider):
         appearances = response.xpath('//tr[th[contains(text(), "Appearance")]]/td//a/@title').getall()
 
         if appearances:
-            character_item['appearances'] = appearances
+            character_item['appearances'] = [appearance.strip() for appearance in appearances]
 
     def __parse_titles(self, response, character_item):
         """
@@ -141,7 +141,7 @@ class CharactersSpider(scrapy.Spider):
         for title_html in title_htmls:
             title = BeautifulSoup(title_html, 'html.parser').get_text()
             if title:
-                titles.append(title)
+                titles.append(title.strip())
 
         if titles:
             character_item['titles'] = titles
@@ -164,9 +164,9 @@ class CharactersSpider(scrapy.Spider):
 
         voice_actors = {}
         if english_voice_actors:
-            voice_actors['english'] = english_voice_actors
+            voice_actors['english'] = [english_voice_actor.strip() for english_voice_actor in english_voice_actors]
         if japanese_voice_actors:
-            voice_actors['japanese'] = japanese_voice_actors
+            voice_actors['japanese'] = [japanese_voice_actor.strip() for japanese_voice_actor in japanese_voice_actors]
 
         if voice_actors:
             character_item['voiceActors'] = voice_actors

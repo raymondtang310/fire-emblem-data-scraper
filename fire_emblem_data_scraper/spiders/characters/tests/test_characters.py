@@ -151,6 +151,33 @@ class TestCharactersSpider(unittest.TestCase):
 
         self.assertEqual(character_item['name'], name, 'Name was not scraped correctly')
 
+    def test_when_parsing_character_given_name_is_found_then_name_is_stripped(self):
+        """
+        Tests that the scraped name of the Fire Emblem character is stripped of leading and trailing whitespace when
+        parsing the given response of the character's web page, given that the name of the character is found in the
+        given response.
+
+        :return: None
+        """
+        name = 'Lucina'
+        html = f'''
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Lucina</title>
+                </head>
+                <body>
+                    <h1 id="firstHeading"> {name}\n</h1>
+                </body>
+            </html>
+        '''
+        response = HtmlResponse(url='', body=html.encode('utf-8'))
+
+        character_item = self.spider.parse_character(response)
+
+        self.assertEqual(character_item['name'], name, 'Name was not scraped correctly')
+
     def test_when_parsing_character_given_name_is_not_found_then_character_is_not_scraped(self):
         """
         Tests that a Fire Emblem character item is not scraped when parsing the given response of the character's web
@@ -434,6 +461,55 @@ class TestCharactersSpider(unittest.TestCase):
 
         self.assertEqual(character_item['appearances'], appearances, 'Appearances were not scraped correctly')
 
+    def test_when_parsing_character_given_appearances_are_found_then_appearances_are_stripped(self):
+        """
+        Tests that each scraped appearance of the Fire Emblem character is stripped of leading and trailing whitespace
+        when parsing the given response of the character's web page, given that the character's appearances are found in
+        the given response.
+
+        :return: None
+        """
+        appearances = ['Fire Emblem: Three Houses', 'Fire Emblem: Heroes', 'Super Smash Bros. Ultimate']
+        html = f'''
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Byleth</title>
+                </head>
+                <body>
+                    <h1 id="firstHeading">Byleth</h1>
+                    <table>
+                        <tr>
+                            <th>Appearances</th>
+                            <td>
+                                <ul>
+                                    <li>
+                                        <a href="/wiki/Fire_Emblem:_Three_Houses" title=" {appearances[0]}">
+                                            Three Houses
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="/wiki/Fire_Emblem:_Heroes" title="{appearances[1]}\n">Heroes</a>
+                                    </li>
+                                    <li>
+                                        <a href="/wiki/Super_Smash_Bros._Ultimate" title="\t{appearances[2]}  \n \t ">
+                                            Super Smash Bros. Ultimate
+                                        </a>
+                                    </li>
+                                </ul>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+            </html>
+        '''
+        response = HtmlResponse(url='', body=html.encode('utf-8'))
+
+        character_item = self.spider.parse_character(response)
+
+        self.assertEqual(character_item['appearances'], appearances, 'Appearances were not scraped correctly')
+
     def test_when_parsing_character_given_appearances_are_not_found_then_appearances_are_not_scraped(self):
         """
         Tests that appearances of the Fire Emblem character are not scraped when parsing the given response of the
@@ -557,6 +633,44 @@ class TestCharactersSpider(unittest.TestCase):
                             <th>Title(s)</th>
                             <td>
                                 <p>{titles[0]}</p>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+            </html>
+        '''
+        response = HtmlResponse(url='', body=html.encode('utf-8'))
+
+        character_item = self.spider.parse_character(response)
+
+        self.assertEqual(character_item['titles'], titles, 'Titles were not scraped correctly')
+
+    def test_when_parsing_character_given_titles_are_found_then_titles_are_stripped(self):
+        """
+        Tests that each scraped title of the Fire Emblem character is stripped of leading and trailing whitespace when
+        parsing the given response of the character's web page, given that titles of the character are found in the
+        given response.
+
+        :return: None
+        """
+        titles = ['Prince of Light', 'Hero-King']
+        html = f'''
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Marth</title>
+                </head>
+                <body>
+                    <h1 id="firstHeading">Marth</h1>
+                    <table>
+                        <tr>
+                            <th>Title(s)</th>
+                            <td>
+                                <ul>
+                                    <li>\t{titles[0]} </li>
+                                    <li>   {titles[1]}\n</li>
+                                </ul>
                             </td>
                         </tr>
                     </table>
@@ -712,6 +826,53 @@ class TestCharactersSpider(unittest.TestCase):
                                     </li>
                                     <li>
                                         <a href="https://en.wikipedia.org/wiki/David">{voice_actors['english'][0]}</a>
+                                        <small>(English, Three Houses)</small>
+                                    </li>
+                                </ul>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+            </html>
+        '''
+        response = HtmlResponse(url='', body=html.encode('utf-8'))
+
+        character_item = self.spider.parse_character(response)
+
+        self.assertEqual(character_item['voiceActors'], voice_actors, 'Voice actors were not scraped correctly')
+
+    def test_when_parsing_character_given_voice_actors_are_found_then_voice_actors_are_stripped(
+            self):
+        """
+        Tests that each scraped voice actor of the Fire Emblem character is stripped when parsing the given response of
+        the character's web page, given that voice actors of the character are found in the given response.
+
+        :return: None
+        """
+        voice_actors = {
+            'english': ['David Lodge'],
+            'japanese': ['Akio Ōtsuka']
+        }
+        html = f'''
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Jeralt</title>
+                </head>
+                <body>
+                    <h1 id="firstHeading">Jeralt</h1>
+                    <table>
+                        <tr>
+                            <th>Voiced by</th>
+                            <td>
+                                <ul>
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/Akio">\t{voice_actors['japanese'][0]} </a>
+                                        <small>(Japanese, Three Houses)</small>
+                                    </li>
+                                    <li>
+                                        <a href="https://en.wikipedia.org/wiki/David"> {voice_actors['english'][0]}\n</a>
                                         <small>(English, Three Houses)</small>
                                     </li>
                                 </ul>
